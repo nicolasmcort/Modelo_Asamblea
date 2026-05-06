@@ -1,83 +1,90 @@
-# Modelo Asamblea
+# Documentación Técnica: Modelo de Simulación de Asamblea Estudiantil
 
-Este documento detalla la mecánica, lógica de eventos y estructura de datos utilizada en el modelo de simulación de eventos discretos para la asamblea estudiantil.
-
----
-
-## ⚙️ 1. Mecánica General del Modelo
-
-El modelo utiliza un enfoque de **Simulación de Eventos Discretos (DES)** que integra dos procesos paralelos pero interconectados:
-
-1.  **Proceso de Arribos (Entidades):** Modela físicamente cuándo llegan las personas al recinto y cuánto tiempo se quedan.
-2.  **Proceso de Agenda (Servidor):** Modela el uso del micrófono y el proceso de votación de las propuestas.
-
-### El Reloj Dual
-Una característica clave es que el modelo maneja dos relojes:
--   **Reloj de Tiempo Real (Columna D):** Cuándo entra la persona físicamente al recinto.
--   **Reloj de Agenda (Columna I):** En qué minuto de la discusión se encuentra la asamblea.
-*La interacción entre ambos ocurre cuando se verifica cuántas personas han llegado antes del tiempo de votación actual pero aún no han salido (Quórum).*
+Este documento brinda una descripción detallada de la arquitectura, lógica de eventos y estructura de datos implementada en el modelo de simulación de eventos discretos (SED) diseñado para representar la dinámica de una asamblea estudiantil.
 
 ---
 
-## 📂 2. Análisis Detallado de Columnas (Hoja: Simulación)
+## 1. Fundamentos del Modelo
 
-Cada fila representa a un asistente y su participación. Aquí está la mecánica de cada columna:
+La simulación se fundamenta en un enfoque de **Simulación de Eventos Discretos (SED)**, integrando dos procesos interdependientes:
 
-| Col | Nombre | Lógica Funcional |
+1.  **Dinámica de Asistencia (Entidades):** Modela el flujo de arribos y la permanencia física de los asistentes en el recinto.
+2.  **Gestión de Agenda (Servidor):** Modela la secuencia de intervenciones (uso del micrófono) y los procesos de votación de propuestas.
+
+### Sistema de Relojes Duales
+Para una representación cercana a la realidad, el modelo opera bajo dos ejes temporales:
+-   **Tiempo de Arribo ($T_{real}$):** Cronometra la entrada física de los asistentes.
+-   **Tiempo de Agenda ($T_{agenda}$):** Cronometra el progreso de la asamblea y las discusiones.
+
+La interacción entre ambos relojes es primordiales para la validación del **Quórum**, la cual se verifica relizando una comparacón entre la cantidad de asistentes presentes en el instante exacto de cada votación y el quórum mínimo establecido.
+
+---
+
+## 2. Definición del Diccionario de Datos (Hoja: Simulación)
+
+Cada registro en la hoja Excel de simulación corresponde a un asistente individual. A continuación, se describe la lógica funcional de las variables principales:
+
+| ID | Variable | Definición y Lógica Estocástica |
 | :--- | :--- | :--- |
-| **A** | **N° Persona** | Contador de personas que han intentado entrar al sistema. |
-| **B** | **Activo** | **Condición lógitica:** Solo es `1` si la persona llegó antes de los 240 min, si la agenda no ha terminado y si el aforo (100) permite su entrada. Si es `0`, el resto de la fila queda vacía. |
-| **C** | **Δt (Inter-llegada)** | Tiempo que pasó desde que llegó la persona anterior. Sigue una **distribución Exponencial Negativa**. |
-| **D** | **Llegada** | Tiempo acumulado de llegada. Si una persona llega en el minuto 241, el sistema la bloquea (col B). |
-| **E** | **Servicio (Intervención)** | Tiempo que la persona hablará ante el micrófono. Sigue una **distribución Normal**. |
-| **F** | **Inicio Intervención** | Momento en el reloj de agenda donde la persona toma el micrófono. Es igual al `T.Acum` de la persona anterior (Cola FIFO). |
-| **G** | **Fin Intervención** | `Inicio + Servicio`. Momento en que deja de hablar la persona. |
-| **H** | **T. Voto** | Tiempo aleatorio entre 2 y 5 minutos dedicado a votar físicamente lo propuesto. |
-| **I** | **T. Acum (Reloj Agenda)** | `Fin Intervención + T. Voto`. Este es el reloj que define si la asamblea se está extendiendo demasiado. |
-| **J** | **Permanencia** | Tiempo que la persona decide quedarse en la asamblea. Sigue una **distribución Exponencial**. |
-| **K** | **Salida** | `Llegada + Permanencia`. Crucial para calcular el aforo dinámico. |
-| **L** | **Ocupación** | **Mecánica:** Cuenta cuántas personas tienen un `Tiempo de Llegada <= D` y un `Tiempo de Salida >= D`. Esto simula el aforo real al momento de la votación. |
-| **M** | **¿Quórum?** | Verifica si la **Ocupación >= Quórum Mínimo** definido en parámetros. |
-| **N** | **Resultado** | Lógica de decisión: Si hay quórum, lanza un aleatorio 50/50. Si no, anula la votación. |
+| **A** | **N° Persona** | Identificador único incremental de la entidad. |
+| **B** | **Estado Activo** | Variable binaria condicionada por: $T_{arribo} \leq 240$, $T_{agenda}$ activo y disponibilidad de aforo ($N \leq 100$). |
+| **C** | **$\Delta t$ Inter-llegada** | Tiempo entre arribos sucesivos. Sigue una **Distribución Exponencial Negativa**. |
+| **D** | **Llegada** | Instante acumulado de entrada al sistema. |
+| **E** | **Servicio (Intervención)** | Duración de la ponencia ante el micrófono. Sigue una **Distribución Normal**. |
+| **F** | **Inicio Intervención** | Instante de inicio en el reloj de agenda. Sigue una lógica de cola FIFO (First-In, First-Out). |
+| **G** | **Fin Intervención** | Tiempo de culminación de la palabra: $F + E$. |
+| **H** | **Tiempo de Voto** | Duración del proceso de escrutinio (Uniforme entre 2 y 5 minutos). |
+| **I** | **Acumulado Agenda** | Progreso total del tiempo de asamblea: $G + H$. |
+| **J** | **Permanencia** | Tiempo de estancia decidido por el asistente. Sigue una **Distribución Exponencial**. |
+| **K** | **Salida** | Instante de abandono del recinto: $D + J$. |
+| **L** | **Aforo Dinámico** | Conteo de entidades activas donde $Llegada \leq T_{actual}$ y $Salida \geq T_{actual}$. |
+| **M** | **Validación Quórum** | Verificación lógica: $Ocupación \geq Quórum_{min}$. |
+| **N** | **Resultado** | Decisión basada en probabilidad 0.5 si existe Quórum; de lo contrario, se anula. |
 
 ---
 
-## 🗓️ 3. Los Eventos y sus Estados
+## 3. Arquitectura de Eventos y Estados
 
-El sistema transita por los siguientes estados:
+La simulación transita por los siguientes estados discretos:
 
-1.  **Evento de Llegada:** 
-    - Se genera el tiempo de llegada.
-    - Se verifica el aforo: `(Cuentas de llegada anteriores < 100)`.
-2.  **Evento de Ocupación del Servidor (Micrófono):**
-    - Se le entrega el micrófono a la persona en cuanto se termina la votación.
-    - Si la persona llega al recinto en el min 10, pero la agenda va en el min 50, la persona debe esperar 40 minutos para hablar.
-3.  **Evento de Votación:**
-    - Ocurre inmediatamente después de la intervención.
-    - Consume tiempo del reloj de agenda (recurso fijo).
+1.  **Evento de Arribo:**
+    -   Generación de marca de tiempo y verificación de restricciones existentes de aforo.
+2.  **Acceso al Recurso / Servidor (Micrófono):**
+    -   Asignación del turno de palabra según la disponibilidad del servidor de agenda.
+    -   Cálculo de tiempos de espera si $T_{arribo} < T_{agenda\_actual}$.
+3.  **Proceso de Votación:**
+    -   Ejecución después de una intervención con consumo del reloj de agenda.
 4.  **Evento de Salida:**
-    - La persona sale del sistema según su tiempo de permanencia, permitiendo que nuevas personas entren si el aforo estaba lleno.
+    -   Liberación de espacio en el aforo dinámico, permitiendo el ingreso de nuevas entidades bloqueadas.
 
 ---
 
-## 📏 4. Restricciones y Paradas
+## 4. Restricciones Operativas y Criterios de Parada
 
--   **Aforo:** Capacidad máxima de 100 personas. El modelo bloquea la entrada si el conteo dinámico (Llegadas vs Salidas) llega a 100.
--   **Tiempo Límite (240 min):** 
-    - Si el `Reloj de Llegada > 240`, no entran más personas.
-    - Si el `Reloj de Agenda > 240`, se cancelan las intervenciones pendientes.
+El modelo está sujeto a límites físicos y temporales estrictos:
 
----
-
-## 🏆 5. Índice de Eficiencia (Cálculo)
-
-Para medir qué tan "buena" fue la asamblea, se calcula un índice de **0 a 1**:
--   **Velocidad (50%):** Compara el tiempo real por decisión frente a un ritmo esperado.
--   **Quórum (30%):** Resalta las asambleas donde la mayoría de decisiones se tomaron con quórum válido.
--   **Aprobación (20%):** Refleja la capacidad de la asamblea para llegar a consensos (decisiones aprobadas).
+-   **Capacidad de Aforo:** Límite máximo de 100 asistentes simultáneos. Las entradas se suspenden si el conteo dinámico llega a alcanzar este valor.
+-   **Ventana Temporal (240 min):**
+    -   **Cierre de Puertas:** No se admiten nuevos arribos superados los 240 minutos de tiempo real.
+    -   **Clausura de Sesión:** Se cancelan intervenciones programadas si el reloj de agenda excede el límite establecido.
 
 ---
 
-## 🚀 Instrucciones de Simulación
-1.  **Recálculo:** Presiona **F9** para ejecutar una asamblea completa.
-2.  **Configuración:** Cambia la media de llegadas o el quórum en la hoja de `Parámetros` para ver cómo cambia la probabilidad de éxito.
+## 5. Métrica de Desempeño: Índice de Eficiencia
+
+La efectividad de la asamblea se cuantifica mediante una función ponderada (escala 0-1):
+
+$$I_e = 0.50(V) + 0.30(Q) + 0.20(A)$$
+
+Donde:
+*   **V (Velocidad):** Relación entre el ritmo de decisión real y el objetivo.
+*   **Q (Quórum):** Proporción de decisiones tomadas con validez legal.
+*   **A (Aprobación):** Tasa de éxito en la generación de consensos.
+
+---
+
+## Guía de Operación
+
+1.  **Ejecución de Ciclos:** Utilizsr la tecla **F9** para realizar un recálculo manual y generar una nueva iteración de la asamblea.
+2.  **Ajuste de Parámetros:** Las variables de entrada (tasas de llegada, medias de servicio, quórum requerido) se gestionan desde la pestaña `Parámetros`.
+
