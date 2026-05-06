@@ -1,4 +1,4 @@
-# Documentación Técnica: Modelo de Simulación de Asamblea Estudiantil
+# Modelo de Simulación de Asamblea Estudiantil
 
 Este documento brinda una descripción detallada de la arquitectura, lógica de eventos y estructura de datos implementada en el modelo de simulación de eventos discretos (SED) diseñado para representar la dinámica de una asamblea estudiantil.
 
@@ -16,7 +16,7 @@ Para una representación cercana a la realidad, el modelo opera bajo dos ejes te
 -   **Tiempo de Arribo ($T_{real}$):** Cronometra la entrada física de los asistentes.
 -   **Tiempo de Agenda ($T_{agenda}$):** Cronometra el progreso de la asamblea y las discusiones.
 
-La interacción entre ambos relojes es primordiales para la validación del **Quórum**, la cual se verifica relizando una comparacón entre la cantidad de asistentes presentes en el instante exacto de cada votación y el quórum mínimo establecido.
+La interacción entre ambos relojes es primordial para la validación del **Quórum**, la cual se verifica relizando una comparación entre la cantidad de asistentes presentes en el instante exacto de cada votación y el quórum mínimo establecido.
 
 ---
 
@@ -43,7 +43,7 @@ Cada registro en la hoja Excel de simulación corresponde a un asistente individ
 
 ---
 
-## 3. Arquitectura de Eventos y Estados
+## 3. Estructura de Eventos y Estados
 
 La simulación transita por los siguientes estados discretos:
 
@@ -85,6 +85,6 @@ Donde:
 
 ## Guía de Operación
 
-1.  **Ejecución de Ciclos:** Utilizsr la tecla **F9** para realizar un recálculo manual y generar una nueva iteración de la asamblea.
+1.  **Ejecución de Ciclos:** Utilizar la tecla **F9** para realizar un recálculo manual y generar una nueva iteración de la asamblea.
 2.  **Ajuste de Parámetros:** Las variables de entrada (tasas de llegada, medias de servicio, quórum requerido) se gestionan desde la pestaña `Parámetros`.
 
